@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PPT Style Transfer v8.1</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f4f6f9;color:#333}
+.container{max-width:1100px;margin:0 auto;padding:20px}
+h1{color:#0076CE;margin-bottom:5px}
+h2{color:#333;margin:25px 0 12px;border-bottom:2px solid #0076CE;padding-bottom:8px}
+h3{color:#555;margin:12px 0 8px}
+.subtitle{color:#666;margin-bottom:20px;font-size:14px}
+.upload-row{display:flex;gap:20px;flex-wrap:wrap}
+.upload-box{flex:1;min-width:280px;border:2px dashed #bbb;padding:25px;border-radius:10px;background:#fff;text-align:center;transition:.3s}
+.upload-box:hover{border-color:#0076CE}
+.upload-box.ok{border-color:#28a745;border-style:solid;background:#f0fff0}
+.upload-box label{font-weight:600;font-size:15px;display:block;margin-bottom:6px}
+.upload-box .info{margin-top:10px;font-size:12px;color:#666}
+.btn{padding:10px 20px;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;transition:.2s;display:inline-flex;align-items:center;gap:6px;margin:3px}
+.btn-blue{background:#0076CE;color:#fff}.btn-blue:hover{background:#005a9e}
+.btn-green{background:#28a745;color:#fff}.btn-green:hover{background:#1e7e34}
+.btn-orange{background:#f0ad4e;color:#333}.btn-orange:hover{background:#ec971f}
+.btn-gray{background:#6c757d;color:#fff}.btn-gray:hover{background:#565e64}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.panel{background:#fff;border-radius:10px;padding:18px;margin:12px 0;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.slide-card{display:flex;gap:12px;align-items:stretch;border:1px solid #e0e0e0;border-radius:8px;padding:12px;background:#fafafa;margin-bottom:8px}
+.slide-card:hover{border-color:#0076CE}
+.snum{background:#0076CE;color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:14px;align-self:flex-start;margin-top:4px}
+.scontent{flex:1;min-width:0}
+.stitle{font-weight:600;font-size:13px}
+.stext{font-size:11px;color:#888;margin-top:2px}
+.slayout{font-size:10px;color:#999;margin-top:3px;background:#f0f0f0;padding:2px 8px;border-radius:3px;display:inline-block}
+.smeta{font-size:10px;color:#666;margin-top:4px}
+.smeta span{background:#e8f4ff;padding:2px 6px;border-radius:3px;margin-right:5px}
+.sselect{min-width:200px;flex-shrink:0}
+.sselect select{width:100%;padding:7px;border:1px solid #ccc;border-radius:5px;font-size:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{background:#e8f4ff;color:#0076CE;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid #b8daff}
+.claude-box textarea{width:100%;min-height:140px;font-family:Consolas,monospace;font-size:11px;padding:10px;border:1px solid #ccc;border-radius:6px;resize:vertical}
+.prompt-out{background:#fdf6e3;color:#333}
+.response-in{background:#1e1e2e;color:#a6e3a1}
+#status{padding:12px 16px;border-radius:6px;margin:12px 0;font-weight:500;display:none}
+.st-ok{background:#d4edda;color:#155724;display:block!important}
+.st-err{background:#f8d7da;color:#721c24;display:block!important}
+.st-info{background:#d1ecf1;color:#0c5460;display:block!important}
+.st-warn{background:#fff3cd;color:#856404;display:block!important}
+#log{background:#1e1e2e;color:#cdd6f4;font-family:Consolas,monospace;font-size:11px;padding:12px;border-radius:6px;max-height:350px;overflow-y:auto;white-space:pre-wrap;margin-top:8px}
+.vlist{list-style:none;padding:0}
+.vlist li{padding:5px 0;font-size:13px;border-bottom:1px solid #f0f0f0}
+.v-pass{color:#28a745}.v-fail{color:#dc3545;font-weight:600}
+.hidden{display:none!important}
+.tabs{display:flex;gap:0;border-bottom:2px solid #e0e0e0;margin-bottom:12px}
+.tab{padding:9px 18px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:500;color:#888;border-bottom:2px solid transparent;margin-bottom:-2px}
+.tab.on{color:#0076CE;border-bottom-color:#0076CE}
+.tpanel{display:none}.tpanel.on{display:block}
+#libStatus{margin:10px 0;padding:10px;border-radius:6px;font-size:13px}
+.lib-loading{background:#fff3cd;color:#856404}
+.lib-ok{background:#d4edda;color:#155724}
+.lib-fail{background:#f8d7da;color:#721c24}
+pre.debug{background:#1e1e2e;color:#a6e3a1;padding:10px;border-radius:6px;font-size:10px;max-height:200px;overflow:auto;white-space:pre-wrap;margin:5px 0}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🎨 PPT Style Transfer v8.1</h1>
+<p class="subtitle">Smart content + images + speaker notes. Titles and formatting inherit from template.</p>
+<div id="libStatus" class="lib-loading">⏳ Loading JSZip...</div>
+<div id="status"></div>
+
+<h2>Step 1 — Upload Files</h2>
+<div class="upload-row">
+    <div class="upload-box" id="tplBox"><label>📐 Template PPT</label>
+        <input type="file" id="tplFile" accept=".pptx" disabled>
+        <div class="info" id="tplInfo"></div></div>
+    <div class="upload-box" id="srcBox"><label>📝 Content PPT</label>
+        <input type="file" id="srcFile" accept=".pptx" disabled>
+        <div class="info" id="srcInfo"></div></div>
+</div>
+
+<div id="layoutSection" class="hidden">
+<h2>Step 2 — Map Layouts</h2>
+<div class="panel">
+    <h3>📐 Template Layouts</h3>
+    <div class="chips" id="chipBox"></div>
+</div>
+<div class="panel">
+    <div class="tabs">
+        <button class="tab on" data-t="manual">✋ Manual</button>
+        <button class="tab" data-t="claude">🤖 Claude</button>
+    </div>
+    <div class="tpanel on" id="tp-manual">
+        <div class="btn-row">
+            <button class="btn btn-gray" id="btnAutoMap">🔄 Auto-Map</button>
+            <button class="btn btn-gray" id="btnSetAll">📋 Set All Same</button>
+        </div>
+        <div id="slideGrid"></div>
+    </div>
+    <div class="tpanel" id="tp-claude">
+        <div class="btn-row"><button class="btn btn-orange" id="btnGenPrompt">📋 Generate Prompt</button></div>
+        <div class="claude-box">
+            <h3>Prompt:</h3><textarea id="promptOut" class="prompt-out"></textarea>
+            <h3>Response:</h3><textarea id="responseIn" class="response-in"></textarea>
+            <div class="btn-row"><button class="btn btn-blue" id="btnApplyClaude">✅ Apply</button></div>
+        </div>
+    </div>
+</div>
+</div>
+
+<div id="buildSection" class="hidden">
+<h2>Step 3 — Build</h2>
+<div class="panel">
+    <div class="btn-row">
+        <button class="btn btn-green" id="btnBuild">🔧 Build & Download</button>
+        <button class="btn btn-orange" id="btnDebug">📦 Debug</button>
+    </div>
+    <ul class="vlist" id="vlist"></ul>
+    <div id="debugOut"></div>
+</div>
+</div>
+
+<details style="margin-top:20px" open>
+    <summary style="cursor:pointer;color:#555;font-size:13px;font-weight:600">🔧 Debug Log</summary>
+    <div id="log"></div>
+</details>
+</div>
+
+<script>
+/* ═══════ LOADER ═══════ */
+(function(){
+    const el=document.getElementById('libStatus');
+    const urls=['https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js','https://unpkg.com/jszip@3.10.1/dist/jszip.min.js','https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'];
+    function ls(u){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=u;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
+    async function init(){
+        for(const u of urls){try{await ls(u);break}catch(e){}}
+        window.saveAs=window.saveAs||function(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;document.body.appendChild(a);a.click();setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(a.href)},200)};
+        if(typeof JSZip==='undefined'){el.className='lib-fail';el.innerHTML='❌ Place <code>jszip.min.js</code> next to this HTML.';return}
+        el.className='lib-ok';el.textContent='✅ Ready';
+        document.getElementById('tplFile').disabled=false;
+        document.getElementById('srcFile').disabled=false;
+        initApp();
+    }
+    init();
+})();
+
+/* ═══════ GLOBALS ═══════ */
+let TZIP=null,SZIP=null;
+let TLayouts=[];
+let SSlides=[];
+let SLayouts=[];
+
+function $(id){return document.getElementById(id)}
+function log(m){const el=$('log');el.textContent+=m+'\n';el.scrollTop=el.scrollHeight;console.log(m)}
+function status(m,t){const el=$('status');el.innerHTML=m;el.className='st-'+t}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function xmlEsc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function readBuf(f){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=()=>no(new Error('Read failed'));r.readAsArrayBuffer(f)})}
+function fl(z,p,noR){return Object.keys(z.files).filter(f=>f.startsWith(p)&&!z.files[f].dir&&(!noR||!f.includes('_rels'))).sort()}
+
+/* ═══════ STRING XML HELPERS ═══════ */
+function parseRels(xml){
+    const rels=[];const rx=/<Relationship\s+([^>]*?)\/>/g;let m;
+    while((m=rx.exec(xml))!==null){
+        const a=m[1];
+        rels.push({id:(a.match(/Id="([^"]*)"/)||[])[1]||'',type:(a.match(/Type="([^"]*)"/)||[])[1]||'',target:(a.match(/Target="([^"]*)"/)||[])[1]||''});
+    }
+    return rels;
+}
+function buildRels(rels){
+    let x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+    for(const r of rels)x+='\r\n  <Relationship Id="'+r.id+'" Type="'+r.type+'" Target="'+r.target+'"/>';
+    return x+'\r\n</Relationships>';
+}
+function buildCT(defaults,overrides){
+    let x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">';
+    for(const d of defaults)x+='\r\n  <Default Extension="'+d.ext+'" ContentType="'+d.ct+'"/>';
+    for(const o of overrides)x+='\r\n  <Override PartName="'+o.pn+'" ContentType="'+o.ct+'"/>';
+    return x+'\r\n</Types>';
+}
+function parseCT(xml){
+    const defaults=[],overrides=[];let m;
+    const dR=/<Default\s+([^>]*?)\/>/g;
+    while((m=dR.exec(xml))!==null)defaults.push({ext:(m[1].match(/Extension="([^"]*)"/)||[])[1]||'',ct:(m[1].match(/ContentType="([^"]*)"/)||[])[1]||''});
+    const oR=/<Override\s+([^>]*?)\/>/g;
+    while((m=oR.exec(xml))!==null)overrides.push({pn:(m[1].match(/PartName="([^"]*)"/)||[])[1]||'',ct:(m[1].match(/ContentType="([^"]*)"/)||[])[1]||''});
+    return{defaults,overrides};
+}
+
+/* ═══════ CONTENT EXTRACTION ═══════ */
+function extractParagraphs(txBodyContent){
+    const paragraphs=[];
+    const pRx=/<a:p[\s>][\s\S]*?<\/a:p>/g;let m;
+    while((m=pRx.exec(txBodyContent))!==null){
+        const pXml=m[0];
+        const lvlMatch=pXml.match(/<a:pPr[^>]*?\slvl="(\d+)"/);
+        const level=lvlMatch?parseInt(lvlMatch[1]):0;
+        const texts=[];
+        const tRx=/<a:t[^>]*>([\s\S]*?)<\/a:t>/g;let tm;
+        while((tm=tRx.exec(pXml))!==null)if(tm[1].trim())texts.push(tm[1]);
+        const fullText=texts.join('');
+        if(fullText.trim()) paragraphs.push({text:fullText.trim(),level});
+    }
+    return paragraphs;
+}
+
+function getPhInfo(shapeXml){
+    const phMatch=shapeXml.match(/<p:ph([^/>]*)\/?>/);
+    if(!phMatch) return null;
+    const a=phMatch[1];
+    return{
+        type:(a.match(/type="([^"]*)"/)||[])[1]||null,
+        idx:(a.match(/idx="([^"]*)"/)||[])[1]||null
+    };
+}
+
+// Get font size from a shape (for header detection)
+function getShapeFontSize(shapeXml){
+    // Look for sz attribute in rPr (font size in hundredths of a point)
+    const szMatch=shapeXml.match(/<a:rPr[^>]*\ssz="(\d+)"/);
+    if(szMatch) return parseInt(szMatch[1]);
+    // Check defRPr
+    const defSzMatch=shapeXml.match(/<a:defRPr[^>]*\ssz="(\d+)"/);
+    if(defSzMatch) return parseInt(defSzMatch[1]);
+    return 0;
+}
+
+// Get Y position of a shape (for detecting top-of-slide headers)
+function getShapeY(shapeXml){
+    const offMatch=shapeXml.match(/<a:off[^>]*\sy="(\d+)"/);
+    return offMatch?parseInt(offMatch[1]):999999999;
+}
+
+function extractPictures(slideXml){
+    const pics=[];
+    const picRx=/<p:pic>[\s\S]*?<\/p:pic>/g;let m;
+    while((m=picRx.exec(slideXml))!==null){
+        const picXml=m[0];
+        const embedMatch=picXml.match(/r:embed="([^"]*)"/);
+        if(!embedMatch) continue;
+        const offMatch=picXml.match(/<a:off\s+x="(\d+)"\s+y="(\d+)"/);
+        const extMatch=picXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+        pics.push({
+            rId:embedMatch[1],
+            x:offMatch?offMatch[1]:'0',
+            y:offMatch?offMatch[2]:'0',
+            cx:extMatch?extMatch[1]:'4572000',
+            cy:extMatch?extMatch[2]:'3429000'
+        });
+    }
+    return pics;
+}
+
+function extractSlideContent(slideXml, slideRelsXml){
+    const content={
+        title:[],
+        subtitle:[],
+        body:[],
+        other:[],      // non-placeholder text with metadata
+        pictures:[],
+        hasNotes:false
+    };
+    
+    const rels=slideRelsXml?parseRels(slideRelsXml):[];
+    const rIdToTarget={};
+    rels.forEach(r=>{rIdToTarget[r.id]={target:r.target,type:r.type}});
+    
+    // Check if notes exist
+    content.hasNotes=rels.some(r=>r.type.includes('/notesSlide'));
+    
+    // Collect ALL text shapes with metadata for smart title detection
+    const allTextShapes=[];
+    
+    const spRx=/<p:sp>[\s\S]*?<\/p:sp>/g;let m;
+    while((m=spRx.exec(slideXml))!==null){
+        const spXml=m[0];
+        const ph=getPhInfo(spXml);
+        const txBodyMatch=spXml.match(/<p:txBody>([\s\S]*?)<\/p:txBody>/);
+        if(!txBodyMatch) continue;
+        const paragraphs=extractParagraphs(txBodyMatch[1]);
+        if(paragraphs.length===0) continue;
+        
+        const fontSize=getShapeFontSize(spXml);
+        const yPos=getShapeY(spXml);
+        
+        if(ph){
+            if(ph.type==='title'||ph.type==='ctrTitle'){
+                content.title.push(...paragraphs);
+            } else if(ph.type==='subTitle'){
+                content.subtitle.push(...paragraphs);
+            } else if(ph.type==='body'||ph.type==='obj'||(ph.idx&&!ph.type)){
+                content.body.push(...paragraphs);
+            } else if(ph.type==='dt'||ph.type==='ftr'||ph.type==='sldNum'){
+                // skip date/footer/slidenum
+            } else {
+                content.body.push(...paragraphs);
+            }
+        } else {
+            // Non-placeholder shape — collect with metadata for header detection
+            allTextShapes.push({
+                paragraphs:paragraphs,
+                fontSize:fontSize,
+                yPos:yPos,
+                text:paragraphs.map(p=>p.text).join(' ')
+            });
+        }
+    }
+    
+    // ═══ SMART TITLE DETECTION ═══
+    // If no title was found from placeholders, find the header/title from non-placeholder shapes
+    if(content.title.length===0 && allTextShapes.length>0){
+        // Strategy 1: Largest font size shape near top
+        // Strategy 2: Topmost shape if short text (likely a header)
+        // Strategy 3: First shape with text
+        
+        // Sort by: largest font first, then topmost position
+        const candidates=[...allTextShapes].sort((a,b)=>{
+            // Prefer larger font
+            if(a.fontSize!==b.fontSize) return b.fontSize-a.fontSize;
+            // Then prefer higher position (lower Y)
+            return a.yPos-b.yPos;
+        });
+        
+        // The best candidate for title: largest font OR topmost short text
+        let titleShape=null;
+        
+        // If any shape has notably larger font, use it
+        if(candidates[0].fontSize>0){
+            titleShape=candidates[0];
+        } else {
+            // No font size info — use topmost shape with short text
+            const topSorted=[...allTextShapes].sort((a,b)=>a.yPos-b.yPos);
+            for(const s of topSorted){
+                if(s.text.length<150){ // Short enough to be a title
+                    titleShape=s;
+                    break;
+                }
+            }
+        }
+        
+        if(titleShape){
+            content.title=titleShape.paragraphs;
+            // Remove this shape from allTextShapes so it's not duplicated
+            const idx=allTextShapes.indexOf(titleShape);
+            if(idx>=0) allTextShapes.splice(idx,1);
+            log('    [Title detected from non-placeholder shape: "'+titleShape.text.substring(0,50)+'"]');
+        }
+    }
+    
+    // Remaining non-placeholder text goes to body or other
+    for(const shape of allTextShapes){
+        content.other.push(...shape.paragraphs);
+    }
+    
+    // Promote other to body if no body exists
+    if(content.body.length===0 && content.other.length>0){
+        content.body=content.other;
+        content.other=[];
+    }
+    
+    // Extract pictures
+    const pics=extractPictures(slideXml);
+    for(const pic of pics){
+        const relInfo=rIdToTarget[pic.rId];
+        if(relInfo && (relInfo.type.includes('/image')||relInfo.target.includes('media/'))){
+            const targetFile=relInfo.target.replace('../','ppt/');
+            content.pictures.push({
+                targetFile:targetFile,
+                sourceRId:pic.rId,
+                x:pic.x,y:pic.y,
+                cx:pic.cx,cy:pic.cy
+            });
+        }
+    }
+    
+    return content;
+}
+
+/* ═══════ LAYOUT PARSING ═══════ */
+function parseLayoutPlaceholders(layoutXml){
+    const phs=[];
+    const spRx=/<p:sp>[\s\S]*?<\/p:sp>/g;let m;
+    while((m=spRx.exec(layoutXml))!==null){
+        const ph=getPhInfo(m[0]);
+        if(ph){
+            const nameMatch=m[0].match(/<p:cNvPr[^>]*name="([^"]*)"/);
+            phs.push({type:ph.type,idx:ph.idx,name:nameMatch?nameMatch[1]:''});
+        }
+    }
+    return phs;
+}
+
+/* ═══════ SLIDE XML BUILDER ═══════ */
+
+// Build paragraphs — NO inline formatting (inherits from template layout/theme)
+function buildParagraphsXml(paragraphs,useBullets){
+    if(!paragraphs||!paragraphs.length) return '<a:p><a:endParaRPr lang="en-US" dirty="0"/></a:p>';
+    let xml='';
+    for(const p of paragraphs){
+        xml+='<a:p>';
+        // Only set lvl for indented bullets — alignment inherits from layout
+        if(p.level>0){
+            xml+='<a:pPr lvl="'+p.level+'"/>';
+        }
+        // Minimal run properties — font size, color, alignment ALL inherit from layout/theme
+        xml+='<a:r><a:rPr lang="en-US" dirty="0"/><a:t>'+xmlEsc(p.text)+'</a:t></a:r>';
+        xml+='</a:p>';
+    }
+    return xml;
+}
+
+// Build clean picture XML from scratch (no source XML baggage)
+function buildCleanPicXml(pic, newRId, shapeId){
+    return '<p:pic>'+
+        '<p:nvPicPr>'+
+            '<p:cNvPr id="'+shapeId+'" name="Picture '+shapeId+'"/>'+
+            '<p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr>'+
+            '<p:nvPr/>'+
+        '</p:nvPicPr>'+
+        '<p:blipFill>'+
+            '<a:blip r:embed="'+newRId+'"/>'+
+            '<a:stretch><a:fillRect/></a:stretch>'+
+        '</p:blipFill>'+
+        '<p:spPr>'+
+            '<a:xfrm>'+
+                '<a:off x="'+pic.x+'" y="'+pic.y+'"/>'+
+                '<a:ext cx="'+pic.cx+'" cy="'+pic.cy+'"/>'+
+            '</a:xfrm>'+
+            '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>'+
+        '</p:spPr>'+
+    '</p:pic>';
+}
+
+function buildSlideXml(content, layoutPlaceholders, imageRIds){
+    let xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n';
+    xml+='<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">\r\n';
+    xml+='  <p:cSld>\r\n    <p:spTree>\r\n';
+    xml+='      <p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>\r\n';
+    xml+='      <p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>\r\n';
+    
+    let sid=2;
+    let titleDone=false,subDone=false,bodyDone=false;
+    
+    for(const ph of layoutPlaceholders){
+        if(ph.type==='dt'||ph.type==='ftr'||ph.type==='sldNum') continue;
+        
+        let pxml='';
+        if((ph.type==='title'||ph.type==='ctrTitle')&&!titleDone){
+            pxml=buildParagraphsXml(content.title,false);
+            titleDone=true;
+        } else if(ph.type==='subTitle'&&!subDone){
+            const sub=content.subtitle.length?content.subtitle:(content.other.length?content.other:null);
+            pxml=buildParagraphsXml(sub,false);
+            subDone=true;
+        } else if((ph.type==='body'||ph.type==='obj'||(!ph.type&&ph.idx))&&!bodyDone){
+            const bd=content.body.length?content.body:(content.other.length?content.other:null);
+            pxml=buildParagraphsXml(bd,true);
+            bodyDone=true;
+        } else {
+            pxml='<a:p><a:endParaRPr lang="en-US" dirty="0"/></a:p>';
+        }
+        
+        // Shape uses empty spPr — inherits position, size, style from layout
+        xml+='      <p:sp>\r\n';
+        xml+='        <p:nvSpPr><p:cNvPr id="'+sid+'" name="'+xmlEsc(ph.name||'Placeholder')+'"/>';
+        xml+='<p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr><p:nvPr><p:ph';
+        if(ph.type) xml+=' type="'+ph.type+'"';
+        if(ph.idx) xml+=' idx="'+ph.idx+'"';
+        xml+='/></p:nvPr></p:nvSpPr>\r\n';
+        xml+='        <p:spPr/>\r\n';
+        xml+='        <p:txBody><a:bodyPr/><a:lstStyle/>'+pxml+'</p:txBody>\r\n';
+        xml+='      </p:sp>\r\n';
+        sid++;
+    }
+    
+    // Unplaced body content
+    if(!bodyDone&&content.body.length>0){
+        xml+='      <p:sp><p:nvSpPr><p:cNvPr id="'+sid+'" name="Content"/>';
+        xml+='<p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>';
+        xml+='<p:nvPr><p:ph idx="1"/></p:nvPr></p:nvSpPr>';
+        xml+='<p:spPr/><p:txBody><a:bodyPr/><a:lstStyle/>';
+        xml+=buildParagraphsXml(content.body,true);
+        xml+='</p:txBody></p:sp>\r\n';
+        sid++;
+    }
+    
+    // Unplaced title
+    if(!titleDone&&content.title.length>0){
+        xml+='      <p:sp><p:nvSpPr><p:cNvPr id="'+sid+'" name="Title"/>';
+        xml+='<p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>';
+        xml+='<p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr>';
+        xml+='<p:spPr/><p:txBody><a:bodyPr/><a:lstStyle/>';
+        xml+=buildParagraphsXml(content.title,false);
+        xml+='</p:txBody></p:sp>\r\n';
+        sid++;
+    }
+    
+    // Pictures — built clean from scratch
+    for(let i=0;i<content.pictures.length;i++){
+        const newRId=imageRIds[i];
+        if(!newRId) continue;
+        xml+='      '+buildCleanPicXml(content.pictures[i],newRId,sid)+'\r\n';
+        sid++;
+    }
+    
+    xml+='    </p:spTree>\r\n  </p:cSld>\r\n';
+    xml+='  <p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>\r\n';
+    xml+='</p:sld>';
+    return xml;
+}
+
+/* ═══════ FILE LOADING ═══════ */
+async function loadFile(which){
+    const inp=$(which==='tpl'?'tplFile':'srcFile');
+    const box=$(which==='tpl'?'tplBox':'srcBox');
+    const info=$(which==='tpl'?'tplInfo':'srcInfo');
+    if(!inp.files.length) return;
+    const file=inp.files[0];
+    log('\n── Loading '+which+': '+file.name+' ──');
+    try{
+        const buf=await readBuf(file);
+        const zip=await JSZip.loadAsync(buf);
+        if(!zip.file('ppt/presentation.xml')) throw new Error('Not a valid PPTX');
+        if(which==='tpl') TZIP=zip; else SZIP=zip;
+        const cnt=Object.keys(zip.files).filter(f=>!zip.files[f].dir).length;
+        box.className='upload-box ok';
+        info.innerHTML='✅ <b>'+esc(file.name)+'</b> — '+cnt+' files';
+        log('  OK: '+cnt+' files');
+        if(TZIP&&SZIP){
+            status('⏳ Parsing...','info');
+            try{
+                await parseAll();
+                $('layoutSection').classList.remove('hidden');
+                $('buildSection').classList.remove('hidden');
+                renderUI();
+                status('✅ Parsed. Map layouts and build.','ok');
+            }catch(e){
+                status('❌ Parse error: '+e.message,'err');
+                log('PARSE ERROR: '+e.stack);
+            }
+        }
+    }catch(e){
+        info.innerHTML='❌ '+esc(e.message);
+        status('❌ '+e.message,'err');
+        log('ERROR: '+e.stack);
+    }
+}
+
+/* ═══════ PARSING ═══════ */
+async function parseAll(){
+    log('\n── Parsing Template ──');
+    TLayouts=[];
+    for(const lf of fl(TZIP,'ppt/slideLayouts/',true)){
+        const xml=await TZIP.file(lf).async('string');
+        const nm=xml.match(/<p:cSld[^>]*name="([^"]*)"/);
+        const name=nm?nm[1]:lf.split('/').pop().replace('.xml','');
+        const phs=parseLayoutPlaceholders(xml);
+        TLayouts.push({path:lf,name,placeholders:phs});
+        log('  "'+name+'": '+phs.map(p=>p.type||'idx:'+p.idx).join(', '));
+    }
+    
+    log('\n── Parsing Content ──');
+    SSlides=[];SLayouts=[];
+    for(const lf of fl(SZIP,'ppt/slideLayouts/',true)){
+        try{
+            const xml=await SZIP.file(lf).async('string');
+            const nm=xml.match(/<p:cSld[^>]*name="([^"]*)"/);
+            SLayouts.push({path:lf,name:nm?nm[1]:lf.split('/').pop().replace('.xml','')});
+        }catch(e){}
+    }
+    
+    const slideFiles=fl(SZIP,'ppt/slides/',true)
+        .filter(f=>f.match(/\/slide\d+\.xml$/))
+        .sort((a,b)=>parseInt(a.match(/slide(\d+)/)[1])-parseInt(b.match(/slide(\d+)/)[1]));
+    log('  Found '+slideFiles.length+' slide files');
+    
+    for(const sf of slideFiles){
+        try{
+            const xml=await SZIP.file(sf).async('string');
+            const num=parseInt(sf.match(/slide(\d+)/)[1]);
+            const relsPath='ppt/slides/_rels/slide'+num+'.xml.rels';
+            const relsFile=SZIP.file(relsPath);
+            let relsXml='';
+            if(relsFile) relsXml=await relsFile.async('string');
+            
+            const content=extractSlideContent(xml, relsXml);
+            
+            let origLayout='Unknown';
+            if(relsXml){
+                const rels=parseRels(relsXml);
+                const lr=rels.find(r=>r.type.includes('/slideLayout'));
+                if(lr){
+                    const lp=lr.target.replace('../slideLayouts/','ppt/slideLayouts/');
+                    const ml=SLayouts.find(l=>l.path===lp);
+                    if(ml) origLayout=ml.name;
+                }
+            }
+            
+            // Check for notes file
+            let hasNotes=false;
+            const notesPath='ppt/notesSlides/notesSlide'+num+'.xml';
+            if(SZIP.file(notesPath)) hasNotes=true;
+            // Also check via rels
+            if(!hasNotes && relsXml){
+                const rels=parseRels(relsXml);
+                const nr=rels.find(r=>r.type.includes('/notesSlide'));
+                if(nr){
+                    const np=nr.target.replace('../notesSlides/','ppt/notesSlides/');
+                    if(SZIP.file(np)) hasNotes=true;
+                }
+            }
+            
+            let mapIdx=0;
+            const ol=origLayout.toLowerCase().trim();
+            let best=TLayouts.findIndex(t=>t.name.toLowerCase().trim()===ol);
+            if(best<0) best=TLayouts.findIndex(t=>t.name.toLowerCase().includes(ol)||ol.includes(t.name.toLowerCase()));
+            if(best>=0) mapIdx=best;
+            
+            const titleText=content.title.map(p=>p.text).join(' ');
+            
+            SSlides.push({
+                path:sf,num,content,origLayout,mapIdx,hasNotes,
+                titleText:titleText||'(Slide '+num+')',
+                bodyCount:content.body.length,
+                imgCount:content.pictures.length
+            });
+            
+            log('  Slide '+num+': title="'+titleText.substring(0,50)+'" body='+content.body.length+'p imgs='+content.pictures.length+(hasNotes?' 📝notes':''));
+        }catch(e){
+            log('  ERROR parsing '+sf+': '+e.message);
+        }
+    }
+    log('  Total: '+SSlides.length+' slides');
+}
+
+/* ═══════ UI ═══════ */
+function renderUI(){
+    $('chipBox').innerHTML=TLayouts.map((l,i)=>{
+        const phStr=l.placeholders.filter(p=>p.type!=='dt'&&p.type!=='ftr'&&p.type!=='sldNum').map(p=>p.type||'idx:'+p.idx).join(', ');
+        return '<span class="chip" title="'+esc(phStr)+'">'+i+': '+esc(l.name)+'</span>';
+    }).join('');
+    renderGrid();
+}
+
+function renderGrid(){
+    const g=$('slideGrid');
+    if(!SSlides.length){g.innerHTML='<p style="color:#c00">No slides found.</p>';return}
+    g.innerHTML=SSlides.map((s,idx)=>{
+        const opts=TLayouts.map((l,li)=>{
+            const phStr=l.placeholders.filter(p=>p.type!=='dt'&&p.type!=='ftr'&&p.type!=='sldNum').map(p=>p.type||'idx:'+p.idx).join(',');
+            return '<option value="'+li+'"'+(li===s.mapIdx?' selected':'')+'>'+li+': '+esc(l.name)+' ['+phStr+']</option>';
+        }).join('');
+        const bodyPreview=s.content.body.slice(0,3).map(p=>'• '+esc(p.text.substring(0,80))).join('<br>');
+        const moreBody=s.content.body.length>3?' <span style="color:#888">+'+(s.content.body.length-3)+' more</span>':'';
+        return '<div class="slide-card">'+
+            '<div class="snum">'+s.num+'</div>'+
+            '<div class="scontent">'+
+                '<div class="stitle">'+esc(s.titleText.substring(0,80))+'</div>'+
+                '<div class="stext">'+bodyPreview+moreBody+'</div>'+
+                '<span class="slayout">Src: '+esc(s.origLayout)+'</span>'+
+                '<div class="smeta">'+
+                    (s.bodyCount>0?'<span>📝 '+s.bodyCount+' paras</span>':'')+
+                    (s.imgCount>0?'<span>📷 '+s.imgCount+' imgs</span>':'')+
+                    (s.hasNotes?'<span>🗒️ notes</span>':'')+
+                '</div>'+
+            '</div>'+
+            '<div class="sselect"><select data-idx="'+idx+'">'+opts+'</select></div>'+
+        '</div>';
+    }).join('');
+    g.querySelectorAll('select').forEach(s=>s.addEventListener('change',function(){
+        SSlides[parseInt(this.dataset.idx)].mapIdx=parseInt(this.value);
+    }));
+}
+
+function autoMap(){
+    let n=0;
+    SSlides.forEach(s=>{
+        const name=s.origLayout.toLowerCase().trim();
+        let best=TLayouts.findIndex(t=>t.name.toLowerCase().trim()===name);
+        if(best<0) best=TLayouts.findIndex(t=>t.name.toLowerCase().includes(name)||name.includes(t.name.toLowerCase()));
+        if(best<0){
+            const hasTitle=s.content.title.length>0;
+            const hasBody=s.content.body.length>0;
+            const hasSub=s.content.subtitle.length>0;
+            if(hasTitle&&!hasBody&&(hasSub||!hasBody))
+                best=TLayouts.findIndex(t=>t.placeholders.some(p=>p.type==='ctrTitle'));
+            if(best<0&&hasTitle&&hasBody)
+                best=TLayouts.findIndex(t=>t.placeholders.some(p=>p.type==='title')&&t.placeholders.some(p=>p.type==='body'||(!p.type&&p.idx)));
+        }
+        if(best>=0){s.mapIdx=best;n++}
+    });
+    renderGrid();
+    status('Mapped '+n+'/'+SSlides.length,'info');
+}
+
+/* ═══════ CLAUDE ═══════ */
+function genPrompt(){
+    const slides=SSlides.map(s=>({slideNumber:s.num,title:s.titleText,bodyBullets:s.content.body.map(p=>p.text).slice(0,5),currentLayout:s.origLayout,images:s.imgCount,hasNotes:s.hasNotes}));
+    const layouts=TLayouts.map((l,i)=>({index:i,name:l.name,placeholders:l.placeholders.filter(p=>p.type!=='dt'&&p.type!=='ftr'&&p.type!=='sldNum').map(p=>p.type||'idx:'+p.idx)}));
+    $('promptOut').value='Map slides to best layout. JSON only.\n\nLAYOUTS:\n'+JSON.stringify(layouts,null,2)+'\n\nSLIDES:\n'+JSON.stringify(slides,null,2)+'\n\nFormat: [{"slideNumber":1,"layoutIndex":0},...]';
+}
+function applyClaude(){
+    const raw=$('responseIn').value.trim();if(!raw){status('Paste response','err');return}
+    try{
+        let j=raw;const cb=raw.match(/```(?:json)?\s*([\s\S]*?)```/);if(cb)j=cb[1];
+        const arr=j.match(/\[[\s\S]*\]/);if(arr)j=arr[0];
+        JSON.parse(j).forEach(m=>{const s=SSlides.find(x=>x.num===m.slideNumber);if(s&&m.layoutIndex>=0&&m.layoutIndex<TLayouts.length)s.mapIdx=m.layoutIndex});
+        renderGrid();status('✅ Applied.','ok');
+    }catch(e){status('❌ '+e.message,'err')}
+}
+
+/* ═════════════════════════════════════
+   BUILD
+   ═════════════════════════════════════ */
+async function build(){
+    const vlist=$('vlist');
+    vlist.innerHTML='<li>⏳ Building...</li>';
+    const checks=[];
+    
+    log('\n════════════════════════════════════');
+    log('  BUILD v8.1 — Smart + Images + Notes');
+    log('════════════════════════════════════');
+    
+    try{
+        // 1. Clone template
+        log('\n── 1. Clone template ──');
+        const OZIP=await JSZip.loadAsync(await TZIP.generateAsync({type:'arraybuffer'}));
+        checks.push({ok:true,m:'Cloned template'});
+        
+        // 2. Remove template slides + notes
+        log('\n── 2. Remove template slides ──');
+        for(const f of fl(OZIP,'ppt/slides/'))OZIP.remove(f);
+        for(const f of fl(OZIP,'ppt/notesSlides/'))OZIP.remove(f);
+        checks.push({ok:true,m:'Cleaned template slides'});
+        
+        const imagesToCopy=new Set();
+        const slideCount=SSlides.length;
+        let notesCount=0;
+        
+        // 3. Check if we need notesMaster
+        const anyNotes=SSlides.some(s=>s.hasNotes);
+        let notesMasterCopied=false;
+        
+        if(anyNotes){
+            log('\n── 2b. Setting up notes infrastructure ──');
+            
+            // Copy notesMaster from source if not already in output
+            const srcNMFiles=fl(SZIP,'ppt/notesMasters/');
+            const srcNMRels=fl(SZIP,'ppt/notesMasters/_rels/');
+            
+            if(srcNMFiles.length>0){
+                for(const f of srcNMFiles){
+                    OZIP.file(f, await SZIP.file(f).async('arraybuffer'));
+                    log('  Copied: '+f);
+                }
+                for(const f of srcNMRels){
+                    // Read the rels and check if theme reference exists
+                    const relsXml=await SZIP.file(f).async('string');
+                    const rels=parseRels(relsXml);
+                    
+                    // Copy any referenced theme files
+                    for(const r of rels){
+                        if(r.type.includes('/theme')){
+                            const themePath='ppt/notesMasters/'+r.target.replace('../','../').replace('..','.');
+                            const normalizedTheme=('ppt/notesMasters/'+r.target).replace(/ppt\/notesMasters\/\.\.\//g,'ppt/');
+                            if(SZIP.file(normalizedTheme) && !OZIP.file(normalizedTheme)){
+                                OZIP.file(normalizedTheme, await SZIP.file(normalizedTheme).async('arraybuffer'));
+                                log('  Copied notes theme: '+normalizedTheme);
+                            }
+                        }
+                    }
+                    
+                    OZIP.file(f, await SZIP.file(f).async('arraybuffer'));
+                    log('  Copied: '+f);
+                }
+                notesMasterCopied=true;
+                checks.push({ok:true,m:'Copied notesMaster from source'});
+            }
+        }
+        
+        // 4. Build each slide
+        log('\n── 3. Building slides ──');
+        
+        for(let i=0;i<slideCount;i++){
+            const slide=SSlides[i];
+            const outSlideNum=i+1;
+            const layout=TLayouts[slide.mapIdx];
+            const layoutFn=layout.path.split('/').pop();
+            
+            log('\n  Slide '+outSlideNum+' (src:'+slide.num+'):');
+            log('    Layout: '+layout.name);
+            log('    Title: "'+slide.titleText.substring(0,50)+'"');
+            log('    Body: '+slide.bodyCount+' paras, Images: '+slide.imgCount);
+            
+            // Build slide rels
+            const slideRels=[{
+                id:'rId1',
+                type:'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout',
+                target:'../slideLayouts/'+layoutFn
+            }];
+            
+            // Process images
+            const imageRIds=[];
+            let nextRId=2;
+            
+            for(const pic of slide.content.pictures){
+                let srcMediaPath=pic.targetFile;
+                if(srcMediaPath.startsWith('ppt/slides/')){
+                    srcMediaPath=srcMediaPath.replace('ppt/slides/../','ppt/');
+                }
+                if(!srcMediaPath.startsWith('ppt/')) srcMediaPath='ppt/'+srcMediaPath;
+                
+                if(!SZIP.file(srcMediaPath)){
+                    log('    ⚠ Image not found: '+srcMediaPath);
+                    imageRIds.push(null);
+                    continue;
+                }
+                
+                const rId='rId'+nextRId;
+                nextRId++;
+                const mediaFn=srcMediaPath.split('/').pop();
+                
+                slideRels.push({
+                    id:rId,
+                    type:'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image',
+                    target:'../media/'+mediaFn
+                });
+                
+                imagesToCopy.add(srcMediaPath);
+                imageRIds.push(rId);
+                log('    Image: '+mediaFn+' → '+rId);
+            }
+            
+            // ═══ NOTES HANDLING ═══
+            if(slide.hasNotes){
+                // Find the actual notes file for this source slide
+                let srcNotesPath=null;
+                let srcNotesRelsPath=null;
+                
+                // Check via rels first (most reliable)
+                const srcSlideRelsPath='ppt/slides/_rels/slide'+slide.num+'.xml.rels';
+                const srcSlideRelsFile=SZIP.file(srcSlideRelsPath);
+                if(srcSlideRelsFile){
+                    const srcRelsXml=await srcSlideRelsFile.async('string');
+                    const srcRels=parseRels(srcRelsXml);
+                    const noteRel=srcRels.find(r=>r.type.includes('/notesSlide'));
+                    if(noteRel){
+                        srcNotesPath='ppt/notesSlides/'+noteRel.target.replace('../notesSlides/','');
+                    }
+                }
+                
+                // Fallback: try by slide number
+                if(!srcNotesPath||!SZIP.file(srcNotesPath)){
+                    srcNotesPath='ppt/notesSlides/notesSlide'+slide.num+'.xml';
+                }
+                
+                if(SZIP.file(srcNotesPath)){
+                    const outNotesPath='ppt/notesSlides/notesSlide'+outSlideNum+'.xml';
+                    
+                    // Read the notes XML and update the slide reference
+                    let notesXml=await SZIP.file(srcNotesPath).async('string');
+                    // Notes XML doesn't reference slides directly in its body, only in .rels
+                    
+                    // Copy notes file
+                    OZIP.file(outNotesPath, notesXml);
+                    
+                    // Copy/create notes .rels — update slide target
+                    const srcNotesRels='ppt/notesSlides/_rels/'+srcNotesPath.split('/').pop()+'.rels';
+                    const outNotesRels='ppt/notesSlides/_rels/notesSlide'+outSlideNum+'.xml.rels';
+                    
+                    let notesRels=[];
+                    if(SZIP.file(srcNotesRels)){
+                        const srcNRXml=await SZIP.file(srcNotesRels).async('string');
+                        const srcNRParsed=parseRels(srcNRXml);
+                        
+                        for(const r of srcNRParsed){
+                            if(r.type.includes('/slide') && !r.type.includes('Master')){
+                                // Update to point to new slide number
+                                notesRels.push({id:r.id,type:r.type,target:'../slides/slide'+outSlideNum+'.xml'});
+                            } else {
+                                // Keep other rels (notesMaster, theme) as-is
+                                notesRels.push(r);
+                            }
+                        }
+                    } else {
+                        // Build minimal notes rels
+                        notesRels=[
+                            {id:'rId1',type:'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide',target:'../slides/slide'+outSlideNum+'.xml'},
+                            {id:'rId2',type:'http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesMaster',target:'../notesMasters/notesMaster1.xml'}
+                        ];
+                    }
+                    
+                    OZIP.file(outNotesRels, buildRels(notesRels));
+                    
+                    // Add notesSlide relationship in slide's .rels
+                    const notesRId='rId'+nextRId;
+                    nextRId++;
+                    slideRels.push({
+                        id:notesRId,
+                        type:'http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide',
+                        target:'../notesSlides/notesSlide'+outSlideNum+'.xml'
+                    });
+                    
+                    notesCount++;
+                    log('    Notes: '+srcNotesPath+' → '+outNotesPath);
+                }
+            }
+            
+            // Build slide XML
+            const slideXml=buildSlideXml(slide.content, layout.placeholders, imageRIds);
+            
+            // Validate
+            const testDoc=new DOMParser().parseFromString(slideXml,'application/xml');
+            if(testDoc.querySelector('parsererror')){
+                checks.push({ok:false,m:'Slide '+outSlideNum+': MALFORMED XML'});
+                log('    ❌ XML error');
+            }
+            
+            // Write
+            OZIP.file('ppt/slides/slide'+outSlideNum+'.xml', slideXml);
+            OZIP.file('ppt/slides/_rels/slide'+outSlideNum+'.xml.rels', buildRels(slideRels));
+            
+            checks.push({ok:true,m:'Slide '+outSlideNum+': "'+slide.titleText.substring(0,35)+'" → '+layout.name+(slide.imgCount>0?' 📷'+slide.imgCount:'')+(slide.hasNotes?' 🗒️':'')});
+        }
+        
+        if(notesCount>0) checks.push({ok:true,m:'Copied '+notesCount+' speaker notes'});
+        
+        // 5. Copy images
+        log('\n── 4. Copying images ──');
+        let imgCopied=0;
+        for(const imgPath of imagesToCopy){
+            try{
+                OZIP.file(imgPath, await SZIP.file(imgPath).async('arraybuffer'));
+                imgCopied++;
+            }catch(e){log('  ⚠ Failed: '+imgPath)}
+        }
+        checks.push({ok:true,m:'Copied '+imgCopied+' image files'});
+        
+        // 6. Update presentation.xml
+        log('\n── 5. Updating presentation.xml ──');
+        let presXml=await OZIP.file('ppt/presentation.xml').async('string');
+        const presRelsXml=await OZIP.file('ppt/_rels/presentation.xml.rels').async('string');
+        const existingRels=parseRels(presRelsXml);
+        
+        // Keep non-slide rels
+        const keptRels=existingRels.filter(r=>{
+            const t=r.type;
+            if(t.endsWith('/slide')) return false;
+            if(t.includes('/slide')&&!t.includes('Master')&&!t.includes('Layout')&&r.target.startsWith('slides/')) return false;
+            if(t.includes('/notesMaster')) return false;
+            return true;
+        });
+        
+        let maxRid=0;
+        for(const r of keptRels){const n=parseInt(r.id.replace('rId',''));if(n>maxRid)maxRid=n}
+        const presRidMatches=[...presXml.matchAll(/r:id="rId(\d+)"/g)];
+        for(const m of presRidMatches){const n=parseInt(m[1]);if(n>maxRid)maxRid=n}
+        
+        const usedIds=new Set();
+        const idMatches=[...presXml.matchAll(/\sid="(\d+)"/g)];
+        idMatches.forEach(m=>usedIds.add(parseInt(m[1])));
+        
+        const newSlideIds=[];
+        const newSlideRels=[];
+        let slideNumId=256;
+        
+        for(let i=0;i<slideCount;i++){
+            maxRid++;
+            while(usedIds.has(slideNumId)) slideNumId++;
+            usedIds.add(slideNumId);
+            newSlideIds.push({id:''+slideNumId,rid:'rId'+maxRid});
+            newSlideRels.push({
+                id:'rId'+maxRid,
+                type:'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide',
+                target:'slides/slide'+(i+1)+'.xml'
+            });
+            slideNumId++;
+        }
+        
+        // Add notesMaster rel if needed
+        if(notesMasterCopied){
+            maxRid++;
+            const nmRid='rId'+maxRid;
+            newSlideRels.push({
+                id:nmRid,
+                type:'http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesMaster',
+                target:'notesMasters/notesMaster1.xml'
+            });
+            
+            // Add notesMasterIdLst in presentation.xml
+            const nmIdLst='<p:notesMasterIdLst><p:notesMasterId r:id="'+nmRid+'"/></p:notesMasterIdLst>';
+            
+            // Remove existing notesMasterIdLst
+            presXml=presXml.replace(/<p:notesMasterIdLst>[\s\S]*?<\/p:notesMasterIdLst>/g,'');
+            
+            // Insert before </p:presentation>
+            presXml=presXml.replace('</p:presentation>','\r\n    '+nmIdLst+'\r\n</p:presentation>');
+            log('  Added notesMasterIdLst');
+        } else {
+            // Remove existing notesMasterIdLst if template had one
+            presXml=presXml.replace(/<p:notesMasterIdLst>[\s\S]*?<\/p:notesMasterIdLst>/g,'');
+        }
+        
+        // Replace sldIdLst
+        let newSldIdLst='<p:sldIdLst>';
+        for(const e of newSlideIds) newSldIdLst+='\r\n      <p:sldId id="'+e.id+'" r:id="'+e.rid+'"/>';
+        newSldIdLst+='\r\n    </p:sldIdLst>';
+        
+        if(presXml.match(/<p:sldIdLst>[\s\S]*?<\/p:sldIdLst>/))
+            presXml=presXml.replace(/<p:sldIdLst>[\s\S]*?<\/p:sldIdLst>/,newSldIdLst);
+        else if(presXml.match(/<p:sldIdLst\s*\/>/))
+            presXml=presXml.replace(/<p:sldIdLst\s*\/>/,newSldIdLst);
+        else
+            presXml=presXml.replace(/(<\/p:sldMasterIdLst>)/,'$1\r\n    '+newSldIdLst);
+        
+        OZIP.file('ppt/presentation.xml',presXml);
+        checks.push({ok:true,m:'Updated presentation.xml'});
+        
+        // 7. Write presentation.xml.rels
+        OZIP.file('ppt/_rels/presentation.xml.rels',buildRels([...keptRels,...newSlideRels]));
+        checks.push({ok:true,m:'Updated presentation.xml.rels'});
+        
+        // 8. Rebuild [Content_Types].xml
+        log('\n── 6. Content_Types.xml ──');
+        const tplCT=parseCT(await OZIP.file('[Content_Types].xml').async('string'));
+        const finalOverrides=tplCT.overrides.filter(o=>
+            !o.pn.match(/\/slides\/slide\d/)&&
+            !o.pn.includes('/notesSlide')&&
+            !o.pn.includes('/notesMasters/')
+        );
+        
+        // Add slide overrides
+        for(let i=1;i<=slideCount;i++){
+            finalOverrides.push({
+                pn:'/ppt/slides/slide'+i+'.xml',
+                ct:'application/vnd.openxmlformats-officedocument.presentationml.slide+xml'
+            });
+        }
+        
+        // Add notes overrides
+        for(let i=0;i<slideCount;i++){
+            if(SSlides[i].hasNotes){
+                const outNum=i+1;
+                finalOverrides.push({
+                    pn:'/ppt/notesSlides/notesSlide'+outNum+'.xml',
+                    ct:'application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml'
+                });
+            }
+        }
+        
+        // Add notesMaster override if copied
+        if(notesMasterCopied){
+            finalOverrides.push({
+                pn:'/ppt/notesMasters/notesMaster1.xml',
+                ct:'application/vnd.openxmlformats-officedocument.presentationml.notesMaster+xml'
+            });
+        }
+        
+        // Ensure media extensions
+        const finalDefaults=[...tplCT.defaults];
+        const extSet=new Set(finalDefaults.map(d=>d.ext));
+        const mediaExts={png:'image/png',jpeg:'image/jpeg',jpg:'image/jpeg',gif:'image/gif',emf:'image/x-emf',wmf:'image/x-wmf',svg:'image/svg+xml',tiff:'image/tiff',bmp:'image/bmp'};
+        for(const imgPath of imagesToCopy){
+            const ext=imgPath.split('.').pop().toLowerCase();
+            if(!extSet.has(ext)&&mediaExts[ext]){finalDefaults.push({ext,ct:mediaExts[ext]});extSet.add(ext)}
+        }
+        if(!extSet.has('rels')){finalDefaults.push({ext:'rels',ct:'application/vnd.openxmlformats-package.relationships+xml'});extSet.add('rels')}
+        if(!extSet.has('xml')){finalDefaults.push({ext:'xml',ct:'application/xml'});extSet.add('xml')}
+        
+        OZIP.file('[Content_Types].xml',buildCT(finalDefaults,finalOverrides));
+        checks.push({ok:true,m:'Rebuilt [Content_Types].xml'});
+        
+        // ═══ VALIDATION ═══
+        log('\n── Validation ──');
+        
+        for(const kf of ['ppt/presentation.xml','ppt/_rels/presentation.xml.rels','[Content_Types].xml']){
+            const x=await OZIP.file(kf).async('string');
+            const d=new DOMParser().parseFromString(x,'application/xml');
+            if(d.querySelector('parsererror')){
+                checks.push({ok:false,m:kf+': MALFORMED'});
+                log('  ❌ '+kf);
+            } else {
+                checks.push({ok:true,m:kf+': valid ✓'});
+            }
+        }
+        
+        // Validate each slide + its notes
+        for(let i=1;i<=slideCount;i++){
+            const sf='ppt/slides/slide'+i+'.xml';
+            if(!OZIP.file(sf)){checks.push({ok:false,m:'MISSING: '+sf});continue}
+            const x=await OZIP.file(sf).async('string');
+            const d=new DOMParser().parseFromString(x,'application/xml');
+            if(d.querySelector('parsererror')){
+                checks.push({ok:false,m:'Slide '+i+': malformed'});
+                continue;
+            }
+            
+            const rp='ppt/slides/_rels/slide'+i+'.xml.rels';
+            if(!OZIP.file(rp)){checks.push({ok:false,m:'Slide '+i+': no .rels'});continue}
+            const rx=await OZIP.file(rp).async('string');
+            const rels=parseRels(rx);
+            
+            // Check layout
+            const lr=rels.find(r=>r.type.includes('/slideLayout'));
+            if(!lr){checks.push({ok:false,m:'Slide '+i+': no layout ref'});continue}
+            const lp='ppt/slideLayouts/'+lr.target.replace('../slideLayouts/','');
+            if(!OZIP.file(lp)){checks.push({ok:false,m:'Slide '+i+': layout MISSING'});continue}
+            
+            // Check images
+            let imgOk=true;
+            for(const ir of rels.filter(r=>r.type.includes('/image'))){
+                const mp='ppt/media/'+ir.target.replace('../media/','');
+                if(!OZIP.file(mp)){checks.push({ok:false,m:'Slide '+i+': image "'+mp+'" MISSING'});imgOk=false}
+            }
+            
+            // Check notes reference
+            const noteRel=rels.find(r=>r.type.includes('/notesSlide'));
+            if(noteRel){
+                const np='ppt/notesSlides/'+noteRel.target.replace('../notesSlides/','');
+                if(!OZIP.file(np)){
+                    checks.push({ok:false,m:'Slide '+i+': notes "'+np+'" MISSING'});
+                } else {
+                    // Validate notes XML
+                    const nxml=await OZIP.file(np).async('string');
+                    const nd=new DOMParser().parseFromString(nxml,'application/xml');
+                    if(nd.querySelector('parsererror')){
+                        checks.push({ok:false,m:'Notes '+i+': malformed XML'});
+                    }
+                    
+                    // Check notes .rels
+                    const nrp='ppt/notesSlides/_rels/'+np.split('/').pop()+'.rels';
+                    if(!OZIP.file(nrp)){
+                        checks.push({ok:false,m:'Notes '+i+': no .rels'});
+                    }
+                }
+            }
+            
+            if(imgOk) log('  ✓ Slide '+i);
+        }
+        
+        // sldIdLst consistency
+        const finalPresXml=await OZIP.file('ppt/presentation.xml').async('string');
+        const finalPresRels=parseRels(await OZIP.file('ppt/_rels/presentation.xml.rels').async('string'));
+        const sldIdRx=/<p:sldId\s+([^>]*?)\/>/g;let sm;
+        let sldListOk=true;
+        while((sm=sldIdRx.exec(finalPresXml))!==null){
+            const rid=(sm[1].match(/r:id="([^"]*)"/)||[])[1]||'';
+            const rel=finalPresRels.find(r=>r.id===rid);
+            if(!rel){checks.push({ok:false,m:'sldIdLst: '+rid+' no Relationship'});sldListOk=false}
+            else if(!OZIP.file('ppt/'+rel.target)){checks.push({ok:false,m:rid+' → '+rel.target+' MISSING'});sldListOk=false}
+        }
+        if(sldListOk) checks.push({ok:true,m:'sldIdLst ↔ rels consistent ✓'});
+        
+        // Duplicate rId check
+        const rIdSet=new Set();let dupRid=false;
+        finalPresRels.forEach(r=>{if(rIdSet.has(r.id)){checks.push({ok:false,m:'Duplicate rId: '+r.id});dupRid=true}rIdSet.add(r.id)});
+        if(!dupRid) checks.push({ok:true,m:'No duplicate rIds ✓'});
+        
+        // ═══ OUTPUT ═══
+        const hasErrors=checks.some(c=>!c.ok);
+        vlist.innerHTML=checks.map(c=>'<li class="'+(c.ok?'v-pass':'v-fail')+'">'+(c.ok?'✅':'❌')+' '+c.m+'</li>').join('');
+        
+        if(hasErrors){
+            status('❌ Errors found. Check log.','err');
+        } else {
+            log('\n✅ All passed — generating...');
+            const blob=await OZIP.generateAsync({
+                type:'blob',
+                mimeType:'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                compression:'DEFLATE',compressionOptions:{level:6}
+            });
+            vlist.innerHTML+='<li class="v-pass">✅ Generated: '+(blob.size/1024).toFixed(1)+' KB</li>';
+            status('✅ Downloaded!','ok');
+            saveAs(blob,'styled_output.pptx');
+        }
+        
+    }catch(e){
+        status('❌ '+e.message,'err');
+        log('\n❌ ERROR:\n'+e.stack);
+        vlist.innerHTML='<li class="v-fail">❌ '+esc(e.message)+'</li>';
+    }
+}
+
+/* ═══════ DEBUG ═══════ */
+async function debugExport(){
+    if(!SZIP){status('Upload files first','warn');return}
+    const el=$('debugOut');
+    let html='<h3>📦 Debug</h3>';
+    const s1=fl(SZIP,'ppt/slides/',true).filter(f=>f.match(/\/slide\d+\.xml$/))[0];
+    if(s1){
+        const xml=await SZIP.file(s1).async('string');
+        html+='<h4>'+s1+'</h4><pre class="debug">'+esc(xml.substring(0,3000))+'</pre>';
+        const r1=s1.replace('ppt/slides/','ppt/slides/_rels/')+'.rels';
+        const rf=SZIP.file(r1);
+        if(rf) html+='<h4>'+r1+'</h4><pre class="debug">'+esc(await rf.async('string'))+'</pre>';
+    }
+    // Check notes
+    const n1=fl(SZIP,'ppt/notesSlides/',true)[0];
+    if(n1){
+        const xml=await SZIP.file(n1).async('string');
+        html+='<h4>'+n1+'</h4><pre class="debug">'+esc(xml.substring(0,2000))+'</pre>';
+    }
+    html+='<h4>Files with "notes"</h4><pre class="debug">'+Object.keys(SZIP.files).filter(f=>f.includes('note')).join('\n')+'</pre>';
+    html+='<h4>All ppt/ files</h4><pre class="debug">'+fl(SZIP,'ppt/').join('\n')+'</pre>';
+    el.innerHTML=html;
+}
+
+/* ═══════ INIT ═══════ */
+function initApp(){
+    log('PPT Style Transfer v8.1');
+    log('Changes from v8: Better title detection, speaker notes, clean picture XML\n');
+    
+    $('tplFile').addEventListener('change',()=>loadFile('tpl'));
+    $('srcFile').addEventListener('change',()=>loadFile('src'));
+    $('btnAutoMap').addEventListener('click',autoMap);
+    $('btnSetAll').addEventListener('click',()=>{
+        const v=prompt('Layout index (0-'+(TLayouts.length-1)+'):\n'+TLayouts.map((l,i)=>i+': '+l.name).join('\n'),'0');
+        const i=parseInt(v);if(isNaN(i)||i<0||i>=TLayouts.length)return;
+        SSlides.forEach(s=>s.mapIdx=i);renderGrid();
+    });
+    $('btnGenPrompt').addEventListener('click',genPrompt);
+    $('btnApplyClaude').addEventListener('click',applyClaude);
+    $('btnBuild').addEventListener('click',build);
+    $('btnDebug').addEventListener('click',debugExport);
+    
+    document.querySelectorAll('.tab').forEach(tab=>{
+        tab.addEventListener('click',function(){
+            document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+            document.querySelectorAll('.tpanel').forEach(p=>p.classList.remove('on'));
+            this.classList.add('on');
+            $('tp-'+this.dataset.t).classList.add('on');
+        });
+    });
+}
+</script>
+</body>
+</html>
